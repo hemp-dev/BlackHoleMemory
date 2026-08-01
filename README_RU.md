@@ -144,6 +144,19 @@ curl http://127.0.0.1:8000/health/ready
 - Galaxy UI: `http://127.0.0.1:8000/bhm/galaxy`;
 - Qdrant dashboard: `http://127.0.0.1:6333/dashboard/`.
 
+## Документация
+
+Полная документация по проекту представлена в директории [`docs/`](docs/README.md):
+
+- **[Быстрый старт](docs/getting-started.md)** — установка, запуск и интеграция.
+- **[Архитектура](docs/architecture.md)** — SQLite WAL, Qdrant, Mem0 и LangGraph.
+- **[Справочник MCP](docs/mcp-tools.md)** — подробное руководство по 50+ MCP-инструментам.
+- **[Справочник REST API](docs/api-reference.md)** — спецификация эндпоинтов и Galaxy UI.
+- **[CLI и Скрипты](docs/cli-reference.md)** — команды `bhm` и скрипты автоматизации.
+- **[Конфигурация](docs/configuration.md)** — настройки, переменные окружения и манифесты.
+- **[Разработка](docs/development.md)** — тестирование, бенчмарки и сборка.
+- **[Диагностика](docs/troubleshooting.md)** — диагностика `bhm doctor` и решение проблем.
+
 ## Благодарности
 
 Спасибо авторам и сообществам [LangGraph](https://github.com/langchain-ai/langgraph),

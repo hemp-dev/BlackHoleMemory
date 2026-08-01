@@ -139,6 +139,19 @@ Once running, the following endpoints are available:
 - Galaxy UI: `http://127.0.0.1:8000/bhm/galaxy`;
 - Qdrant dashboard: `http://127.0.0.1:6333/dashboard/`.
 
+## Documentation
+
+Full project documentation is available in the [`docs/`](docs/README.md) directory:
+
+- **[Getting Started](docs/getting-started.md)** — Installation, execution, and agent setup.
+- **[Architecture](docs/architecture.md)** — SQLite WAL, Qdrant, Mem0, and LangGraph architecture.
+- **[MCP Tools Reference](docs/mcp-tools.md)** — Reference guide for 50+ BHM MCP tools.
+- **[REST API Reference](docs/api-reference.md)** — API endpoints, Galaxy UI, and OpenAPI specs.
+- **[CLI & Scripts](docs/cli-reference.md)** — Unified `bhm` CLI and platform automation scripts.
+- **[Configuration](docs/configuration.md)** — Settings, environment variables, and manifests.
+- **[Development](docs/development.md)** — Testing with pytest, benchmarks, and release builds.
+- **[Troubleshooting](docs/troubleshooting.md)** — Diagnostic checks with `bhm doctor` and recovery.
+
 ## Acknowledgments
 
 Special thanks to the authors and communities of [LangGraph](https://github.com/langchain-ai/langgraph),

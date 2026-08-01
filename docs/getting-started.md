@@ -1,13 +1,21 @@
-# Быстрый старт
+# Быстрый старт BlackHoleMemory
 
-## Требования
+Данное руководство поможет вам установить, настроить и запустить **BlackHoleMemory (BHM)**, а также подключить его к вашему AI-агенту.
 
-- macOS (Apple Silicon / Intel), Linux или Windows 10/11;
-- Python 3.12+;
-- [uv](https://docs.astral.sh/uv/);
-- Docker или Colima с Docker Compose для локального Qdrant.
+---
 
-## Установка
+## 1. Системные требования
+
+- **ОС**: macOS (Apple Silicon / Intel), Linux или Windows 10/11;
+- **Python**: версия 3.12 или новее;
+- **Менеджер пакетов**: [uv](https://docs.astral.sh/uv/);
+- **Контейнеризация**: Docker или Colima с Docker Compose для запуска Qdrant.
+
+---
+
+## 2. Установка
+
+Клонируйте репозиторий и установите зависимости:
 
 ```bash
 git clone https://github.com/Efidripy/BlackHoleMemory.git
@@ -15,48 +23,86 @@ cd BlackHoleMemory
 uv sync
 ```
 
-## Запуск
+---
 
-Вы можете использовать единый CLI `bhm` или нативные скрипты:
+## 3. Запуск сервисов
 
-### Использование CLI `bhm` (кроссплатформенно)
+Вы можете использовать кроссплатформенный CLI `bhm` или нативные скрипты автоматизации.
 
-```bash
-# Проверка здоровья системы и зависимостей
-uv run bhm doctor
+### Вариант А: Использование CLI `bhm` (Рекомендуется)
 
-# Запуск локального контейнера Qdrant
-uv run bhm qdrant start
+1. **Диагностика окружения**:
+   ```bash
+   uv run bhm doctor
+   ```
 
-# Запуск authoritative сервера BHM runtime
-uv run bhm start
-```
+2. **Запуск векторной базы данных Qdrant**:
+   ```bash
+   uv run bhm qdrant start
+   ```
 
-### Использование нативных скриптов автоматизации
+3. **Запуск сервера BHM**:
+   ```bash
+   uv run bhm start
+   ```
 
-На macOS / Linux (POSIX):
+### Вариант Б: Использование нативных скриптов
 
-```bash
-./scripts/start-bhm-authoritative.sh
-```
+- **macOS / Linux (POSIX)**:
+  ```bash
+  ./scripts/start-bhm-authoritative.sh
+  ```
 
-На Windows (PowerShell):
+- **Windows (PowerShell)**:
+  ```powershell
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-bhm-authoritative.ps1
+  ```
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-bhm-authoritative.ps1
-```
+---
 
-### Проверка readiness
+## 4. Проверка готовности (Readiness Check)
+
+Убедитесь, что сервер успешно запущен и отвечает по адресу готовности:
 
 ```bash
 curl http://127.0.0.1:8000/health/ready
 ```
 
-Основные адреса:
+Ожидаемый ответ:
+```json
+{
+  "status": "ready",
+  "storage": "sqlite-authoritative",
+  "qdrant": "connected"
+}
+```
 
-- API: `http://127.0.0.1:8000/bhm/`;
-- MCP: `http://127.0.0.1:8000/mcp`;
-- Galaxy UI: `http://127.0.0.1:8000/bhm/galaxy`;
-- Qdrant dashboard: `http://127.0.0.1:6333/dashboard/`.
+---
 
-Для остановки и диагностики используйте команды `bhm` (`uv run bhm qdrant stop`), штатные команды Docker / Colima и скрипты из `scripts/`. Runtime state не коммитится в Git.
+## 5. Доступные адреса и сервисы
+
+После успешного запуска доступны следующие компоненты:
+
+- **BHM REST API**: `http://127.0.0.1:8000/bhm/`
+- **MCP Endpoint**: `http://127.0.0.1:8000/mcp`
+- **Galaxy UI (3D/2D граф)**: `http://127.0.0.1:8000/bhm/galaxy`
+- **Qdrant Dashboard**: `http://127.0.0.1:6333/dashboard/`
+- **Redoc API Docs**: `http://127.0.0.1:8000/redoc`
+
+---
+
+## 6. Подключение AI-агента
+
+Укажите адрес MCP в конфигурационном файле вашего агента (Claude Desktop, Cursor, Antigravity, Windsurf и др.):
+
+```json
+{
+  "mcpServers": {
+    "bhm": {
+      "url": "http://127.0.0.1:8000/mcp"
+    }
+  }
+}
+```
+
+После этого агент получит доступ ко всем инструментам долговременной памяти `bhm_*`.
