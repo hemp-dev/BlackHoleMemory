@@ -67,7 +67,7 @@ def _repo_root() -> Path:
 
 
 def _namespace_root() -> Path:
-    return _repo_root() / ".runtime" / "memory" / "swarm_scratchpad"
+    return _repo_root() / "runtime" / "memory" / "swarm_scratchpad"
 
 
 def _sanitize_controls(value: str) -> str:
@@ -98,9 +98,14 @@ def _has_symlink_component(path: Path) -> bool:
 
 
 def _contains_sensitive_component(path: Path) -> bool:
-    parts = {part.casefold() for part in path.parts}
-    if parts & _SENSITIVE_PARTS:
-        return True
+    parts = [part.casefold() for part in path.parts]
+    for part in parts:
+        if part in _SENSITIVE_PARTS:
+            if part == "private" and (
+                "var" in parts or "tmp" in parts or "etc" in parts
+            ):
+                continue
+            return True
     name = path.name.casefold()
     return name in _SENSITIVE_NAMES or any(name.endswith(suffix) for suffix in _SENSITIVE_SUFFIXES)
 
@@ -177,7 +182,7 @@ def _scratchpad_path(
         if not path.is_absolute():
             path = _repo_root() / path
     else:
-        path = _repo_root() / ".runtime" / "memory" / "swarm_scratchpad.md"
+        path = _repo_root() / "runtime" / "memory" / "swarm_scratchpad.md"
     return _validate_path(path, isolated=False)
 
 

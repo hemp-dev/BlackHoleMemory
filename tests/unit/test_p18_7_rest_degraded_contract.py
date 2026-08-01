@@ -9,6 +9,14 @@ PLUGIN_SCRIPTS = REPO_ROOT / "plugins" / "bhm-codex-connector" / "scripts"
 COMMON = (PLUGIN_SCRIPTS / "bhm-memory-common.ps1").read_text(encoding="utf-8")
 
 
+import shutil
+import pytest
+
+POWERSHELL_BIN = shutil.which("pwsh") or shutil.which("powershell")
+if not POWERSHELL_BIN:
+    pytestmark = pytest.mark.skip(reason="PowerShell is unavailable on this host")
+
+
 def _transport_for(attach: dict) -> dict:
     encoded = base64.b64encode(json.dumps(attach).encode("utf-8")).decode("ascii")
     common_path = str(PLUGIN_SCRIPTS / "bhm-memory-common.ps1").replace("'", "''")
@@ -20,7 +28,7 @@ function Get-ConnectorMcpAttachStatus {{ param([string]$BaseUrl) return $script:
 New-ConnectorTransportTruth -BaseUrl 'http://127.0.0.1:8000' -Operation 'fixture' | ConvertTo-Json -Depth 12 -Compress
 """
     completed = subprocess.run(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        [POWERSHELL_BIN, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         capture_output=True,
         text=True,
         encoding="utf-8",

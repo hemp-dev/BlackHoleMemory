@@ -27,26 +27,6 @@ function Add-Check {
     })
 }
 
-function Get-BhmCallerHeaders {
-    $token = [string][Environment]::GetEnvironmentVariable('BHM_CALLER_TOKEN', 'Process')
-    if ([string]::IsNullOrWhiteSpace($token)) {
-        $token = [string][Environment]::GetEnvironmentVariable('BHM_CALLER_TOKEN', 'User')
-    }
-    if ([string]::IsNullOrWhiteSpace($token)) {
-        $envPath = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.bhm\.env'
-        foreach ($line in Get-Content -LiteralPath $envPath -ErrorAction SilentlyContinue) {
-            if ($line -match '^\s*BHM_CALLER_TOKEN\s*=') {
-                $token = $line.Split('=', 2)[1].Split('#', 2)[0].Trim().Trim('"').Trim("'")
-                break
-            }
-        }
-    }
-    if ([string]::IsNullOrWhiteSpace($token) -or $token.Trim().Length -lt 32) {
-        throw 'BHM_CALLER_TOKEN is unavailable'
-    }
-    return @{ Authorization = "Bearer $($token.Trim())"; 'X-BHM-Caller-Surface' = 'runtime-validator' }
-}
-
 function Get-ForbiddenRouteMatches {
     param([string[]]$Roots)
 
@@ -163,8 +143,7 @@ if ($null -ne $openapi) {
 }
 
 try {
-    $headers = Get-BhmCallerHeaders
-    $health = Invoke-RestMethod -Method Get -Uri "$BaseUrl/bhm/health" -Headers $headers -TimeoutSec 10
+    $health = Invoke-RestMethod -Method Get -Uri "$BaseUrl/bhm/health" -TimeoutSec 10
     Add-Check -Name "bhm_health" -Ok ($health.status -eq "healthy") -Detail "BHM health must be healthy." -Evidence $health
 } catch {
     Add-Check -Name "bhm_health" -Ok $false -Detail $_.Exception.Message
@@ -178,8 +157,7 @@ try {
 }
 
 try {
-    $headers = Get-BhmCallerHeaders
-    $cutover = Invoke-RestMethod -Method Get -Uri "$BaseUrl/health/cutover" -Headers $headers -TimeoutSec 10
+    $cutover = Invoke-RestMethod -Method Get -Uri "$BaseUrl/health/cutover" -TimeoutSec 10
     Add-Check -Name "bhm_cutover_health" -Ok ([bool]$cutover.ok) -Detail "BHM cutover health must be green." -Evidence $cutover
 } catch {
     Add-Check -Name "bhm_cutover_health" -Ok $false -Detail $_.Exception.Message

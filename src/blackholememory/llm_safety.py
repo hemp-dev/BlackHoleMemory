@@ -149,10 +149,15 @@ def allowlisted_artifact_manifest(paths: Iterable[str | Path], roots: Iterable[s
         path = Path(raw_path).expanduser().resolve()
         if not any(_is_relative_to(path, root) for root in resolved_roots):
             raise LLMSafetyViolation(f"artifact is outside allowlisted roots: {raw_path}")
+        parts_fold = [p.casefold() for p in path.parts]
         if (
             path.suffix.casefold() in _SECRET_PATH_SUFFIXES
             or path.name.casefold().startswith(".env")
-            or any(part.casefold() in _SECRET_PATH_PARTS for part in path.parts)
+            or any(
+                part in _SECRET_PATH_PARTS
+                and not (part == "private" and ("var" in parts_fold or "tmp" in parts_fold or "etc" in parts_fold))
+                for part in parts_fold
+            )
         ):
             raise LLMSafetyViolation(f"artifact path is sensitive: {raw_path}")
         if not path.is_file():

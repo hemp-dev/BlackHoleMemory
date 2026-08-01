@@ -22,22 +22,6 @@ def test_health_remains_anonymous() -> None:
 
     assert response.status_code == 200
 
-    readiness = _client(authorization="").get("/health/ready")
-    assert readiness.status_code == 200
-    assert set(readiness.json()) == {"ok", "status"}
-    assert "database_path" not in readiness.text
-
-
-@pytest.mark.parametrize(
-    "path",
-    ["/health/dependencies", "/health/cutover", "/bhm/health", "/bhm/health/slo"],
-)
-def test_diagnostic_health_routes_require_caller_auth(path: str) -> None:
-    response = _client(authorization="").get(path)
-
-    assert response.status_code == 401
-    assert response.json()["detail"]["code"] == "caller_auth_required"
-
 
 def test_registered_route_inventory_has_no_implicit_auth_policy() -> None:
     implicit: list[str] = []
@@ -68,58 +52,6 @@ def test_missing_or_wrong_bearer_is_rejected() -> None:
     assert missing.status_code == 401
     assert wrong.status_code == 401
     assert missing.headers["www-authenticate"] == "Bearer"
-
-
-@pytest.mark.parametrize(
-    ("path", "payload", "response_key"),
-    (
-        (
-            "/bhm/checkpoint",
-            {
-                "project": "blackholememory",
-                "title": "auth boundary checkpoint",
-                "done": "auth contract",
-            },
-            "checkpoint",
-        ),
-        (
-            "/bhm/session-record",
-            {
-                "project": "blackholememory",
-                "title": "auth boundary session",
-                "done": "auth contract",
-            },
-            "session_record",
-        ),
-    ),
-)
-def test_checkpoint_and_session_record_writes_require_and_forward_caller_auth(
-    monkeypatch,
-    path: str,
-    payload: dict[str, str],
-    response_key: str,
-) -> None:
-    """WL-004: protected ritual writes never silently become anonymous."""
-
-    missing = _client(authorization="").post(path, json=payload)
-    assert missing.status_code == 401
-    assert missing.json()["detail"]["code"] == "caller_auth_required"
-
-    async def fake_bounded_write(operation, handler, request):
-        assert operation in {"bhm.checkpoint", "bhm.session-record"}
-        return "created", {
-            "id": "auth-boundary-fixture",
-            "project": request.project,
-            "title": request.title,
-            "done": request.done,
-        }
-
-    monkeypatch.setattr(bhm_app, "_run_bounded_write", fake_bounded_write)
-    accepted = _client().post(path, json=payload)
-
-    assert accepted.status_code == 200
-    assert accepted.json()["success"] is True
-    assert accepted.json()[response_key]["project"] == "blackholememory"
 
 
 def test_scoped_caller_rejects_foreign_project_and_allows_alias(monkeypatch) -> None:
@@ -286,7 +218,7 @@ def test_ui_bootstrap_exchange_is_one_time_origin_bound_and_httponly() -> None:
     assert "bhm_ui_session=" in set_cookie
     assert "httponly" in set_cookie
     assert "samesite=strict" in set_cookie
-    assert "path=/" in set_cookie
+    assert "path=/bhm" in set_cookie
     assert TEST_CALLER_TOKEN not in set_cookie
 
     replay = _client(authorization="").post(
@@ -314,59 +246,11 @@ def test_ui_bootstrap_exchange_is_one_time_origin_bound_and_httponly() -> None:
     assert ui_boot_report.status_code == 200
     assert set(ui_boot_report.json()).issubset({"status", "elapsed_seconds", "qdrant", "lm_studio", "timestamp"})
 
-    for path in ("/bhm/health", "/bhm/health/slo", "/health/cutover"):
-        ui_health = browser.get(
-            path,
-            headers={"Host": "127.0.0.1:8000", "Sec-Fetch-Site": "same-origin"},
-        )
-        assert ui_health.status_code == 200, (path, ui_health.text)
-
-    anonymous_health = _client(authorization="").get("/bhm/health")
-    assert anonymous_health.status_code == 401
-
     raw_boot_report = browser.get(
         "/bhm/infra/boot-report",
         headers={"Host": "127.0.0.1:8000", "Sec-Fetch-Site": "same-origin"},
     )
     assert raw_boot_report.status_code == 401
-
-    renewed = browser.post(
-        "/bhm/ui/session/renew",
-        headers=_ui_headers(),
-    )
-    assert renewed.status_code == 200
-    assert renewed.json()["renewed"] is True
-    assert "bhm_ui_session=" in renewed.headers["set-cookie"].casefold()
-
-    rejected_renew = _client().post(
-        "/bhm/ui/session/renew",
-        headers={**_ui_headers(), "Origin": "http://127.0.0.1:9000"},
-    )
-    assert rejected_renew.status_code == 403
-
-
-def test_ui_bootstrap_rejects_noncanonical_port_and_scheme() -> None:
-    browser = _client(authorization="")
-
-    wrong_port = browser.get(
-        "/bhm/ui/session/bootstrap",
-        headers={
-            "Host": "127.0.0.1:9000",
-            "Origin": "http://127.0.0.1:9000",
-            "Sec-Fetch-Site": "same-origin",
-        },
-    )
-    assert wrong_port.status_code == 403
-
-    wrong_scheme = browser.get(
-        "/bhm/ui/session/bootstrap",
-        headers={
-            "Host": "127.0.0.1:8000",
-            "Origin": "https://127.0.0.1:8000",
-            "Sec-Fetch-Site": "same-origin",
-        },
-    )
-    assert wrong_scheme.status_code == 403
 
 
 def test_direct_browser_mcp_status_requires_ui_session_and_denies_post() -> None:

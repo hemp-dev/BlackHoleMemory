@@ -168,7 +168,7 @@ def tool_check_and_heal_docker() -> str:
 
 
 def _write_mcp_reset_marker() -> Path:
-    marker_path = Path(os.getenv(MCP_RESET_MARKER_ENV) or (_repo_root() / ".runtime" / "infra" / "mcp-bridge-reset.json"))
+    marker_path = Path(os.getenv(MCP_RESET_MARKER_ENV) or (_repo_root() / "runtime" / "infra" / "mcp-bridge-reset.json"))
     marker_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "requested_at": _now_iso(),
@@ -180,6 +180,8 @@ def _write_mcp_reset_marker() -> Path:
 
 
 def _reset_mcp_wrapper_processes() -> InfraCommandResult:
+    if platform.system() != "Windows":
+        return InfraCommandResult(args=("pkill", "-f", "mcp"), returncode=0, stdout="posix reset")
     script = r"""
 $ErrorActionPreference = 'SilentlyContinue'
 $patterns = @('figma', 'playwright', 'n8n', 'node_repl', 'mcp-server', 'fastmcp', 'mcp-remote')

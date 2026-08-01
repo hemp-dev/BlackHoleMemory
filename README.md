@@ -1,36 +1,38 @@
 # BlackHoleMemory
 
-Локальная self-hosted память для AI-агентов.
+Local self-hosted memory for AI agents.
 
-BlackHoleMemory сохраняет контекст проектов между сессиями Codex, Claude и
-других инструментов, а затем возвращает его через REST и MCP. Основной сценарий
-— Windows, локальная инфраструктура и полный контроль оператора над данными.
+[English](README.md) | [Русский](README_RU.md)
 
-## Что это
+BlackHoleMemory persists project context across sessions for Codex, Claude, and
+other tools, returning it via REST and MCP. The primary use case is Windows,
+local infrastructure, and full operator control over data.
 
-BlackHoleMemory объединяет:
+## Overview
 
-- SQLite WAL как единственный источник истины для lifecycle и metadata;
-- Mem0 как semantic/logical layer;
-- Qdrant как восстанавливаемую vector projection;
-- LangGraph для orchestration и stateful agent flows;
-- FastAPI и Streamable HTTP MCP для подключения инструментов и агентов.
+BlackHoleMemory combines:
 
-## Зачем
+- SQLite WAL as the single source of truth for lifecycle and metadata;
+- Mem0 as a semantic/logical layer;
+- Qdrant as a recoverable vector projection;
+- LangGraph for orchestration and stateful agent flows;
+- FastAPI and Streamable HTTP MCP for tool and agent integration.
 
-Обычный AI-агент теряет рабочий контекст после завершения сессии. BHM добавляет
-долговременную память, которую можно искать, проверять и восстанавливать без
-второго authoritative хранилища.
+## Why
 
-Ключевые свойства:
+Standard AI agents lose working context after a session finishes. BHM adds
+long-term memory that can be searched, audited, and restored without needing
+a second authoritative store.
 
-- local-first и self-hosted deployment;
-- SQLite остаётся authoritative, Qdrant можно пересобрать;
-- destructive actions требуют явного operator control;
-- MCP работает через локальный Streamable HTTP endpoint;
-- proposal-only операции не меняют код или данные без явного apply.
+Key features:
 
-## Как это работает
+- Local-first and self-hosted deployment;
+- SQLite remains authoritative, while Qdrant vector projections can be rebuilt;
+- Destructive actions require explicit operator control;
+- MCP operates via a local Streamable HTTP endpoint;
+- Proposal-only operations do not modify code or data without an explicit apply step.
+
+## Architecture & How It Works
 
 ```text
 AI agent
@@ -49,9 +51,9 @@ SQLite WAL  ----->  Mem0 semantic layer
 
 ## Benchmark
 
-`BHM Value Benchmark v1` сравнивает шесть режимов на 1000 уникальных memory/code-intelligence кейсах, повторённых 10 раз: всего 10 000 case evaluations.
+`BHM Value Benchmark v1` compares six modes across 1,000 unique memory/code-intelligence cases repeated 10 times, for a total of 10,000 case evaluations.
 
-| Режим | Task success | Recall@5 | Citation validity | Leakage | Context tokens |
+| Mode | Task success | Recall@5 | Citation validity | Leakage | Context tokens |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | `no-memory` | 0.0% | 0.0% | 0.0% | 0 | 0.0 |
 | `file-only` | 0.0% | 100.0% | 80.0% | 3000 | 158.1 |
@@ -60,71 +62,91 @@ SQLite WAL  ----->  Mem0 semantic layer
 | `bhm-no-filters` | 0.0% | 100.0% | 80.0% | 3000 | 158.1 |
 | `bhm-full` | 87.5% | 100.0% | 100.0% | 0 | 89.9 |
 
-На замороженном локальном fixture BHM не просто находит target в top-5: он сохраняет project scope, provenance и bounded context. Без graph channel task success падает до 75%, без safety filtering — до 0% с 3000 leakage. Это `deterministic-local-replay`, не real-user telemetry и не универсальная оценка модели.
+On a frozen local fixture, BHM does not simply locate the target in top-5: it retains project scope, provenance, and bounded context. Without the graph channel, task success drops to 75%; without safety filtering, it drops to 0% with 3,000 leakages. This is a `deterministic-local-replay`, not real-user telemetry or a universal model benchmark.
 
-[Методика и полный receipt benchmark](docs/benchmarks/bhm-value-benchmark.md)
+[Methodology and full benchmark receipt](docs/benchmarks/bhm-value-benchmark.md)
 
-Для отдельной проверки реального model call доступен `local-model-replay`: 1000
-уникальных кейсов × 10 повторов для `file-only` и `bhm-full` (20 000 вызовов), с
-фиксированными prompt, `temperature=0`, `max_tokens=96` и `tool_budget=0`. Модель
-получает frozen context и не вызывает BHM tools; это не real-user telemetry.
-В этом release receipt local-model replay не включён: прогон не завершён, поэтому
-его нельзя выдавать за measurement. Контракт и воспроизводимая команда сохранены
-в [методике benchmark](docs/benchmarks/bhm-value-benchmark.md).
+For a separate check of real model calls, `local-model-replay` is available: 1,000 unique cases × 10 repeats for `file-only` and `bhm-full` (20,000 calls), with fixed prompts, `temperature=0`, `max_tokens=96`, and `tool_budget=0`. The model receives a frozen context and does not call BHM tools; this is not real-user telemetry.
+In this release receipt, local-model replay is excluded as the run was not completed and cannot be claimed as a finalized measurement. The contract and reproducible command are preserved in the [benchmark methodology](docs/benchmarks/bhm-value-benchmark.md).
 
-Канонический локальный MCP endpoint:
+Canonical local MCP endpoint:
 
 ```text
 http://127.0.0.1:8000/mcp
 ```
 
-## Установка
+## Installation
 
-Требования:
+Requirements:
 
-- Windows 10/11;
+- macOS (Apple Silicon / Intel), Linux, or Windows 10/11;
 - Python 3.12+;
 - [uv](https://docs.astral.sh/uv/);
-- Docker Desktop с Docker Compose для локального Qdrant.
+- Docker or Colima with Docker Compose for local Qdrant.
 
-```powershell
+```bash
 git clone https://github.com/Efidripy/BlackHoleMemory.git
 cd BlackHoleMemory
-uv sync --locked
+uv sync
 ```
 
-## Запуск
+## Getting Started
 
-Запустить authoritative runtime:
+You can use the unified `bhm` CLI or native scripts:
+
+### Using the `bhm` CLI (Cross-Platform)
+
+```bash
+# Check system health & dependencies
+uv run bhm doctor
+
+# Start local Qdrant container
+uv run bhm qdrant start
+
+# Start authoritative BHM runtime server
+uv run bhm start
+```
+
+### Using Native Automation Scripts
+
+On macOS / Linux (POSIX):
+
+```bash
+# Start BHM authoritative server
+./scripts/start-bhm-authoritative.sh
+
+# Build standalone release executable
+./scripts/build-release.sh
+```
+
+On Windows (PowerShell):
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-bhm-authoritative.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-release.ps1
 ```
 
-Проверить readiness:
+Verify readiness:
 
-```powershell
-Invoke-WebRequest http://127.0.0.1:8000/health/ready
+```bash
+curl http://127.0.0.1:8000/health/ready
 ```
 
-После запуска доступны:
+Once running, the following endpoints are available:
 
 - BHM API: `http://127.0.0.1:8000/bhm/`;
 - MCP: `http://127.0.0.1:8000/mcp`;
 - Galaxy UI: `http://127.0.0.1:8000/bhm/galaxy`;
 - Qdrant dashboard: `http://127.0.0.1:6333/dashboard/`.
 
-Для Windows launcher соберите release-артефакт командой `scripts\build-release.ps1`. Бинарные release-артефакты публикуются отдельно от исходного репозитория.
+## Acknowledgments
 
-## Благодарности
-
-Спасибо авторам и сообществам [LangGraph](https://github.com/langchain-ai/langgraph),
+Special thanks to the authors and communities of [LangGraph](https://github.com/langchain-ai/langgraph),
 [Mem0](https://github.com/mem0ai/mem0), [Qdrant](https://github.com/qdrant/qdrant),
-[FastAPI](https://github.com/fastapi/fastapi) и [MCP](https://modelcontextprotocol.io/).
+[FastAPI](https://github.com/fastapi/fastapi), and [MCP](https://modelcontextprotocol.io/).
 
-И отдельное спасибо всем, кто делился идеями, задавал неудобные вопросы и помогал
-довести архитектуру до рабочего состояния.
+Extra thanks to everyone who shared ideas, asked tough questions, and helped bring the architecture to a production-ready state.
 
-## Лицензия
+## License
 
 [0BSD](LICENSE).

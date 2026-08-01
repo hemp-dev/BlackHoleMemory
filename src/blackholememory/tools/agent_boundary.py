@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-AGENT_INPUT_ROOT = REPO_ROOT / ".runtime" / "agent-inputs"
+AGENT_INPUT_ROOT = REPO_ROOT / "runtime" / "agent-inputs"
 _SENSITIVE_PARTS = frozenset(
     {
         ".git",
@@ -58,9 +58,14 @@ def _configured_roots(
 
 
 def _contains_sensitive_component(path: Path) -> bool:
-    parts = {part.casefold() for part in path.parts}
-    if parts & _SENSITIVE_PARTS:
-        return True
+    parts = [part.casefold() for part in path.parts]
+    for part in parts:
+        if part in _SENSITIVE_PARTS:
+            if part == "private" and (
+                "var" in parts or "tmp" in parts or "etc" in parts
+            ):
+                continue
+            return True
     name = path.name.casefold()
     return name in _SENSITIVE_NAMES or any(name.endswith(suffix) for suffix in _SENSITIVE_SUFFIXES)
 

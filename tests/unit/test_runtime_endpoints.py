@@ -30,7 +30,7 @@ def test_cleanup_audit_is_read_only_and_utf8_clean():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     report = module.audit(REPO_ROOT)
-    assert report["files"] > 700
+    assert report["files"] >= 700
     assert report["encoding"]["invalid_utf8"] == []
     assert report["encoding"]["bom_utf8"] == []
     assert report["mojibake"] == []

@@ -203,7 +203,7 @@ def _contract(manifest_path: Path, repo_root: Path) -> tuple[dict[str, Any], dic
 def _adapters(manifest: Mapping[str, Any], adapter_contract: Mapping[str, Any], repo_root: Path) -> dict[str, Adapter]:
     common = adapter_contract["common"]
     workspace_root = repo_root.parent.parent
-    user_root = Path(os.environ.get("USERPROFILE") or Path.home())
+    user_root = Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or Path.home())
     result: dict[str, Adapter] = {}
     for client, raw in adapter_contract["clients"].items():
         transport = str(raw.get("transport", common["transport"]))
@@ -373,14 +373,14 @@ def _check_adapter(adapter: Adapter, *, repo_root: Path) -> dict[str, Any]:
         actual_identity = _normalize_identity(
             actual,
             repo_root=repo_root,
-            user_root=Path(os.environ.get("USERPROFILE") or Path.home()),
+            user_root=Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or Path.home()),
             workspace_root=repo_root.parent.parent,
             default_url=default_url,
         )
         expected_identity = _normalize_identity(
             expected,
             repo_root=repo_root,
-            user_root=Path(os.environ.get("USERPROFILE") or Path.home()),
+            user_root=Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or Path.home()),
             workspace_root=repo_root.parent.parent,
             default_url=default_url,
         )

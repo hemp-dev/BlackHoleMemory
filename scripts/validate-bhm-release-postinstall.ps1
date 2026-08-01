@@ -15,26 +15,6 @@ $ErrorActionPreference = "Stop"
 if ([string]::IsNullOrWhiteSpace($BaseUrl)) { $BaseUrl = Get-BhmRuntimeEndpoint -Name 'bhm_api' -RepoRoot (Split-Path -Parent $PSScriptRoot) }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-function Get-BhmCallerHeaders {
-    $token = [string][Environment]::GetEnvironmentVariable('BHM_CALLER_TOKEN', 'Process')
-    if ([string]::IsNullOrWhiteSpace($token)) {
-        $token = [string][Environment]::GetEnvironmentVariable('BHM_CALLER_TOKEN', 'User')
-    }
-    if ([string]::IsNullOrWhiteSpace($token)) {
-        $envPath = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.bhm\.env'
-        foreach ($line in Get-Content -LiteralPath $envPath -ErrorAction SilentlyContinue) {
-            if ($line -match '^\s*BHM_CALLER_TOKEN\s*=') {
-                $token = $line.Split('=', 2)[1].Split('#', 2)[0].Trim().Trim('"').Trim("'")
-                break
-            }
-        }
-    }
-    if ([string]::IsNullOrWhiteSpace($token) -or $token.Trim().Length -lt 32) {
-        throw 'BHM_CALLER_TOKEN is unavailable'
-    }
-    return @{ Authorization = "Bearer $($token.Trim())"; 'X-BHM-Caller-Surface' = 'release-validator' }
-}
-
 function Get-ArchiveAudit {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -64,10 +44,9 @@ function Get-LiveRuntimeAudit {
     param([Parameter(Mandatory = $true)][string]$Url)
 
     try {
-        $headers = Get-BhmCallerHeaders
-        $health = Invoke-RestMethod -UseBasicParsing -Uri "$Url/bhm/health" -Headers $headers -TimeoutSec 10
-        $cutover = Invoke-RestMethod -UseBasicParsing -Uri "$Url/health/cutover" -Headers $headers -TimeoutSec 10
-        $slo = Invoke-RestMethod -UseBasicParsing -Uri "$Url/bhm/health/slo" -Headers $headers -TimeoutSec 10
+        $health = Invoke-RestMethod -UseBasicParsing -Uri "$Url/bhm/health" -TimeoutSec 10
+        $cutover = Invoke-RestMethod -UseBasicParsing -Uri "$Url/health/cutover" -TimeoutSec 10
+        $slo = Invoke-RestMethod -UseBasicParsing -Uri "$Url/bhm/health/slo" -TimeoutSec 10
         [pscustomobject]@{
             ok = ($health.status -eq 'healthy' -and $health.memory_store.backend -eq 'sqlite-authoritative' -and [bool]$cutover.ok -and $slo.status -eq 'healthy')
             health = $health.status
@@ -188,8 +167,8 @@ if ($Action -eq "rollback-plan") {
         archive = $ReleaseArchive
         archive_sha256 = $releaseHash
         rollback_surfaces = @(
-            ".runtime/live-memory/migration-backups",
-            ".runtime/live-memory/outbox-recovery",
+            "runtime/live-memory/migration-backups",
+            "runtime/live-memory/outbox-recovery",
             "workspace/local/tmp/bhm-releases"
         )
         note = "Plan only; no process stop, archive replacement, database restore or Qdrant mutation was performed."

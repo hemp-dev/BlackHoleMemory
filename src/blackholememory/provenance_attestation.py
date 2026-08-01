@@ -95,30 +95,32 @@ def build_provenance_attestation_report(
     manifest_path = None
     if source:
         manifest_path = root / ".src" / str(source.get("slug")) / "SOURCE-MANIFEST.json"
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-            failures.append("source manifest unavailable or invalid")
+        if manifest_path.is_file():
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                failures.append("source manifest unavailable or invalid")
     identity = envelope.get("identity") if isinstance(envelope.get("identity"), dict) else {}
-    if source and manifest:
+    if source:
         expected_identity = {
             "source_id": source.get("id"),
             "revision": source.get("revision"),
-            "content_sha256": manifest.get("content_sha256"),
             "license": source.get("license"),
-            "manifest_sha256": _sha256_file(manifest_path),
             "registry_sha256": _sha256_file(root / "config" / "source-registry.json"),
         }
+        if manifest:
+            expected_identity["content_sha256"] = manifest.get("content_sha256")
+            expected_identity["manifest_sha256"] = _sha256_file(manifest_path)
+            if source.get("code_copy_allowed") is not True or manifest.get("code_copy_allowed") is not True:
+                failures.append("code_copy_allowed=true is not present in both registry and manifest")
+            if manifest.get("runtime_dependency") is not False or manifest.get("authoritative_bhm_state") is not False:
+                failures.append("source manifest violates runtime/authority boundary")
         for key, expected in expected_identity.items():
             observed = identity.get(key)
             if key.endswith("sha256") and isinstance(observed, str):
                 observed = observed.lower()
             if observed != expected:
                 failures.append(f"identity drift: {key}")
-        if source.get("code_copy_allowed") is not True or manifest.get("code_copy_allowed") is not True:
-            failures.append("code_copy_allowed=true is not present in both registry and manifest")
-        if manifest.get("runtime_dependency") is not False or manifest.get("authoritative_bhm_state") is not False:
-            failures.append("source manifest violates runtime/authority boundary")
     external = envelope.get("external_evidence") if isinstance(envelope.get("external_evidence"), dict) else {}
     missing_external = []
     for field in EXTERNAL_HASH_FIELDS:

@@ -7,8 +7,10 @@ from pathlib import Path
 from blackholememory.mcp_repair import build_repair_preview
 from blackholememory.mcp_repair import build_reprobe
 from blackholememory.mcp_repair import execute_reconnect
-from blackholememory.mcp_repair import execute_rollback
+from blackholememory.mcp_repair import execute_rollback, _adapter_context
 
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -28,8 +30,21 @@ def _healthy_panel(*, attached: bool = False, transport_ready: bool = True) -> d
     }
 
 
-def test_preview_is_bhm_only_and_requires_native_probe_before_reload():
-    result = build_repair_preview(repo_root=REPO_ROOT, panel=_healthy_panel())
+def _write_clean_fixture_repo(tmp_path: Path) -> tuple[Path, Path]:
+    repo, user = _write_fixture_repo(tmp_path)
+    generator, adapters = _adapter_context(repo, ["codex", "claude"])
+    codex_content = generator._render_toml(user / "codex.toml", adapters["codex"], repo_root=repo)
+    claude_content = generator._render_json(user / "claude.json", adapters["claude"], repo_root=repo)
+    (user / "codex.toml").write_text(codex_content, encoding="utf-8")
+    (user / "claude.json").write_text(claude_content, encoding="utf-8")
+    return repo, user
+
+
+def test_preview_is_bhm_only_and_requires_native_probe_before_reload(tmp_path, monkeypatch):
+    repo, user = _write_clean_fixture_repo(tmp_path)
+    monkeypatch.setenv("USERPROFILE", str(user))
+    monkeypatch.setenv("HOME", str(user))
+    result = build_repair_preview(repo_root=repo, panel=_healthy_panel())
 
     assert result["schema_version"] == "bhm.mcp.repair.v1"
     assert result["scope"]["mode"] == "bhm-only"
@@ -44,8 +59,11 @@ def test_preview_is_bhm_only_and_requires_native_probe_before_reload():
     assert all("target" not in row and "path" not in row for row in result["adapters"])
 
 
-def test_preview_repairs_unavailable_transport_before_considering_reload():
-    result = build_repair_preview(repo_root=REPO_ROOT, panel=_healthy_panel(transport_ready=False))
+def test_preview_repairs_unavailable_transport_before_considering_reload(tmp_path, monkeypatch):
+    repo, user = _write_clean_fixture_repo(tmp_path)
+    monkeypatch.setenv("USERPROFILE", str(user))
+    monkeypatch.setenv("HOME", str(user))
+    result = build_repair_preview(repo_root=repo, panel=_healthy_panel(transport_ready=False))
 
     assert result["plan"]["reconnect"]["status"] == "transport_repair_required"
     assert result["plan"]["reconnect"]["transport_repair_required"] is True
@@ -141,6 +159,7 @@ def _write_fixture_repo(root: Path) -> tuple[Path, Path]:
 def test_confirmed_adapter_repair_rolls_back_exactly_and_keeps_foreign_entries(tmp_path, monkeypatch):
     repo, user = _write_fixture_repo(tmp_path)
     monkeypatch.setenv("USERPROFILE", str(user))
+    monkeypatch.setenv("HOME", str(user))
 
     def after() -> dict:
         return _healthy_panel()

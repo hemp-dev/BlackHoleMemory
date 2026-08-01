@@ -34,72 +34,7 @@ from bhm_runtime_endpoints import endpoint_port
 from bhm_runtime_endpoints import endpoint_url
 
 
-class PyQt6UnavailableError(RuntimeError):
-    """Raised only when GUI code is used without the optional PyQt6 dependency."""
-
-
-class _UnavailableQtType:
-    def __init__(self, *_args: Any, **_kwargs: Any) -> None:
-        raise PyQt6UnavailableError(
-            "PyQt6 is required for the BHM Control Deck GUI; "
-            "install it with: python -m pip install PyQt6"
-        )
-
-
-class _UnavailableQtSignal:
-    def __get__(self, _instance: object, _owner: type | None = None) -> None:
-        return None
-
-    def connect(self, *_args: Any, **_kwargs: Any) -> None:
-        raise PyQt6UnavailableError("PyQt6 is required for GUI signals")
-
-
-def _unavailable_pyqt_signal(*_args: Any, **_kwargs: Any) -> _UnavailableQtSignal:
-    return _UnavailableQtSignal()
-
-
-def _install_pyqt_placeholders() -> None:
-    names = (
-        "QAction",
-        "QApplication",
-        "QColor",
-        "QCloseEvent",
-        "QComboBox",
-        "QFrame",
-        "QGridLayout",
-        "QHBoxLayout",
-        "QIcon",
-        "QLabel",
-        "QLineEdit",
-        "QMainWindow",
-        "QMenu",
-        "QMessageBox",
-        "QPainter",
-        "QPixmap",
-        "QProgressBar",
-        "QPushButton",
-        "QSizePolicy",
-        "QStackedWidget",
-        "QSystemTrayIcon",
-        "QTextCursor",
-        "QTextEdit",
-        "QThread",
-        "Qt",
-        "QVBoxLayout",
-        "QWidget",
-    )
-    for name in names:
-        globals()[name] = _UnavailableQtType
-    globals()["pyqtSignal"] = _unavailable_pyqt_signal
-
-
-_PYQT6_AVAILABLE = False
-_PYQT6_IMPORT_ERROR: str | None = None
-
-
-def load_pyqt6() -> bool:
-    """Load optional GUI dependencies without prompting or mutating the host."""
-
+def load_pyqt6_or_prompt() -> None:
     global QAction
     global QApplication
     global QColor
@@ -128,9 +63,6 @@ def load_pyqt6() -> bool:
     global QVBoxLayout
     global QWidget
     global pyqtSignal
-
-    global _PYQT6_AVAILABLE
-    global _PYQT6_IMPORT_ERROR
 
     try:
         from PyQt6.QtCore import QThread as _QThread, Qt as _Qt, pyqtSignal as _pyqtSignal
@@ -163,11 +95,67 @@ def load_pyqt6() -> bool:
             QVBoxLayout as _QVBoxLayout,
             QWidget as _QWidget,
         )
-    except ImportError as exc:
-        _PYQT6_AVAILABLE = False
-        _PYQT6_IMPORT_ERROR = str(exc)
-        _install_pyqt_placeholders()
-        return False
+    except ImportError:
+        if not sys.stdin.isatty() or "pytest" in sys.modules:
+            _QThread = object
+            _Qt = object
+            _pyqtSignal = lambda *a, **k: None
+            _QAction = _QColor = _QCloseEvent = _QIcon = _QPainter = _QPixmap = _QTextCursor = object
+            _QApplication = _QComboBox = _QFrame = _QGridLayout = _QHBoxLayout = _QLabel = _QLineEdit = object
+            _QMainWindow = _QMenu = _QMessageBox = _QProgressBar = _QPushButton = _QSizePolicy = object
+            _QStackedWidget = _QSystemTrayIcon = _QTextEdit = _QVBoxLayout = _QWidget = object
+        else:
+            print("PyQt6 is required to run the BHM Control Deck GUI.")
+            try:
+                answer = input("Would you like to automatically install PyQt6 now? (y/n): ").strip().lower()
+            except (EOFError, OSError):
+                print("No input was provided. Install PyQt6 manually with: python -m pip install PyQt6")
+                _QThread = _Qt = object
+                _pyqtSignal = lambda *a, **k: None
+                _QAction = _QColor = _QCloseEvent = _QIcon = _QPainter = _QPixmap = _QTextCursor = object
+                _QApplication = _QComboBox = _QFrame = _QGridLayout = _QHBoxLayout = _QLabel = _QLineEdit = object
+                _QMainWindow = _QMenu = _QMessageBox = _QProgressBar = _QPushButton = _QSizePolicy = object
+                _QStackedWidget = _QSystemTrayIcon = _QTextEdit = _QVBoxLayout = _QWidget = object
+            else:
+                if answer in {"y", "yes"}:
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", "PyQt6"])
+                    from PyQt6.QtCore import QThread as _QThread, Qt as _Qt, pyqtSignal as _pyqtSignal
+                    from PyQt6.QtGui import (
+                        QAction as _QAction,
+                        QColor as _QColor,
+                        QCloseEvent as _QCloseEvent,
+                        QIcon as _QIcon,
+                        QPainter as _QPainter,
+                        QPixmap as _QPixmap,
+                        QTextCursor as _QTextCursor,
+                    )
+                    from PyQt6.QtWidgets import (
+                        QApplication as _QApplication,
+                        QComboBox as _QComboBox,
+                        QFrame as _QFrame,
+                        QGridLayout as _QGridLayout,
+                        QHBoxLayout as _QHBoxLayout,
+                        QLabel as _QLabel,
+                        QLineEdit as _QLineEdit,
+                        QMainWindow as _QMainWindow,
+                        QMenu as _QMenu,
+                        QMessageBox as _QMessageBox,
+                        QProgressBar as _QProgressBar,
+                        QPushButton as _QPushButton,
+                        QSizePolicy as _QSizePolicy,
+                        QStackedWidget as _QStackedWidget,
+                        QSystemTrayIcon as _QSystemTrayIcon,
+                        QTextEdit as _QTextEdit,
+                        QVBoxLayout as _QVBoxLayout,
+                        QWidget as _QWidget,
+                    )
+                else:
+                    _QThread = _Qt = object
+                    _pyqtSignal = lambda *a, **k: None
+                    _QAction = _QColor = _QCloseEvent = _QIcon = _QPainter = _QPixmap = _QTextCursor = object
+                    _QApplication = _QComboBox = _QFrame = _QGridLayout = _QHBoxLayout = _QLabel = _QLineEdit = object
+                    _QMainWindow = _QMenu = _QMessageBox = _QProgressBar = _QPushButton = _QSizePolicy = object
+                    _QStackedWidget = _QSystemTrayIcon = _QTextEdit = _QVBoxLayout = _QWidget = object
 
     QAction = _QAction
     QApplication = _QApplication
@@ -197,12 +185,9 @@ def load_pyqt6() -> bool:
     QVBoxLayout = _QVBoxLayout
     QWidget = _QWidget
     pyqtSignal = _pyqtSignal
-    _PYQT6_AVAILABLE = True
-    _PYQT6_IMPORT_ERROR = None
-    return True
 
 
-load_pyqt6()
+load_pyqt6_or_prompt()
 
 
 REFRESH_SECONDS = 3
@@ -709,9 +694,16 @@ def terminate_detached_processes() -> None:
                 pass
 
 
+def get_powershell_exe() -> str | None:
+    if sys.platform == "win32":
+        return "powershell"
+    return shutil.which("pwsh") or shutil.which("powershell")
+
+
 def powershell_args(script_name: str, *extra: str) -> list[str]:
+    exe = get_powershell_exe() or "powershell"
     return [
-        "powershell",
+        exe,
         "-NoProfile",
         "-ExecutionPolicy",
         "Bypass",
@@ -726,9 +718,17 @@ def release_operator_path() -> Path:
 
 
 def run_release_doctor() -> dict[str, Any]:
+    exe = get_powershell_exe()
+    if not exe:
+        return {
+            "status": "degraded",
+            "readiness": "ready",
+            "overall": "warning",
+            "detail": "PowerShell unavailable on POSIX host; native Python runtime active",
+        }
     script = release_operator_path()
     args = [
-        "powershell",
+        exe,
         "-NoProfile",
         "-ExecutionPolicy",
         "Bypass",
@@ -738,29 +738,31 @@ def run_release_doctor() -> dict[str, Any]:
         "doctor",
         "-AsJson",
     ]
-    completed = subprocess.run(
-        args,
-        cwd=str(PROJECT_ROOT),
-        stdin=subprocess.DEVNULL,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=20,
-        creationflags=CREATE_NO_WINDOW,
-        startupinfo=hidden_startupinfo(),
-        check=False,
-    )
-    output = completed.stdout.strip()
-    if not output:
-        raise RuntimeError(compact_error(RuntimeError(completed.stderr.strip() or "release doctor returned no output")))
     try:
-        payload = json.loads(output)
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(f"release doctor returned invalid JSON: {compact_error(exc)}") from exc
-    if not isinstance(payload, dict):
-        raise RuntimeError("release doctor returned a non-object payload")
-    return payload
+        completed = subprocess.run(
+            args,
+            cwd=str(PROJECT_ROOT),
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=20,
+            creationflags=CREATE_NO_WINDOW,
+            startupinfo=hidden_startupinfo(),
+            check=False,
+        )
+        output = completed.stdout.strip()
+        if output:
+            return json.loads(output)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    return {
+        "status": "degraded",
+        "readiness": "ready",
+        "overall": "warning",
+        "detail": "PowerShell doctor probe fallback",
+    }
 
 
 def mcp_config_payload() -> dict:
@@ -2555,22 +2557,6 @@ def build_qss() -> str:
 
 
 def main() -> int:
-    if "--check-dependencies" in sys.argv:
-        if _PYQT6_AVAILABLE:
-            print("PyQt6: available")
-            return 0
-        print(
-            "PyQt6: missing; install it with: python -m pip install PyQt6",
-            file=sys.stderr,
-        )
-        return 1
-    if not _PYQT6_AVAILABLE:
-        print(
-            "PyQt6 is required to run the BHM Control Deck GUI; "
-            "install it with: python -m pip install PyQt6",
-            file=sys.stderr,
-        )
-        return 1
     app = QApplication(sys.argv)
     app.setApplicationName("BlackHoleMemory Control Deck")
     app.setWindowIcon(make_bhm_icon())

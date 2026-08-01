@@ -24,14 +24,10 @@ _HTTP_ALLOWLIST = frozenset(
         ("GET", "/bhm/graph"),
         ("GET", "/bhm/telemetry/mcp-panel"),
         ("GET", "/bhm/mcp/http/status"),
-        ("GET", "/bhm/mcp/repair/preview"),
-        ("GET", "/bhm/health"),
-        ("GET", "/bhm/health/slo"),
-        ("GET", "/health/cutover"),
-        ("POST", "/bhm/ui/code-tools"),
-        ("POST", "/bhm/retrieval/explain"),
+    ("GET", "/bhm/mcp/repair/preview"),
+    ("POST", "/bhm/ui/code-tools"),
+    ("POST", "/bhm/retrieval/explain"),
         ("GET", "/bhm/ui/session/status"),
-        ("POST", "/bhm/ui/session/renew"),
     }
 )
 
@@ -107,27 +103,6 @@ class UiSessionRegistry:
     def resolve_session(self, session_token: str | None) -> CallerPrincipal | None:
         lease = self.resolve_session_lease(session_token)
         return lease[0] if lease is not None else None
-
-    def renew_session(self, session_token: str | None) -> tuple[CallerPrincipal, float, str] | None:
-        """Rotate and extend a valid UI lease, returning a server-generated token."""
-
-        if not session_token:
-            return None
-        now = time.monotonic()
-        with self._lock:
-            self._purge(self._sessions, now)
-            digest = _digest(session_token)
-            record = self._sessions.get(digest)
-            if record is None:
-                return None
-            renewed_token = _token()
-            renewed = _SessionRecord(
-                principal=record.principal,
-                expires_at=now + SESSION_TTL_SECONDS,
-            )
-            self._sessions.pop(digest, None)
-            self._sessions[_digest(renewed_token)] = renewed
-            return renewed.principal, SESSION_TTL_SECONDS, renewed_token
 
     def resolve_session_lease(self, session_token: str | None) -> tuple[CallerPrincipal, float] | None:
         if not session_token:

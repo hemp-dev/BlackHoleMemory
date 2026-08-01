@@ -41,6 +41,7 @@ build = [
 
 [project.scripts]
 bhm-mcp = "blackholememory.bhm_mcp:main"
+bhm = "blackholememory.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

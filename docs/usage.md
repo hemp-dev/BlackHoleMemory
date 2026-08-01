@@ -5,29 +5,6 @@ authoritative lifecycle и metadata, Mem0 отвечает за semantic/logical
 Qdrant используется как восстанавливаемая vector projection, а LangGraph — для
 оркестрации stateful flows.
 
-## Authority and projection
-
-SQLite is the authoritative store. In the canonical authoritative runtime the
-projection worker is intentionally disabled by the SQLite authority guard;
-this is a protection boundary, not a runtime failure. Qdrant remains a
-rebuildable read projection and must not become a second source of truth.
-
-When an operator needs to reconcile a backlog, use the bounded operator flow:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bhm-projection-operator.ps1 -Action drain -MaxCycles 32
-```
-
-The flow temporarily runs the explicit projection worker in `sqlite-shadow`
-mode, then restores the canonical `sqlite-authoritative` runtime and verifies
-that pending and failed projection events are zero.
-
-The browser UI contract is direct-loopback-only: use the canonical BHM API
-host/port, do not expose `/` or `/bhm/*` through an untrusted reverse proxy,
-and do not treat `X-Forwarded-*` headers as an authentication signal. A proxy
-deployment must preserve the loopback boundary and explicitly authenticate
-before forwarding requests.
-
 ## MCP
 
 Канонический локальный endpoint:
@@ -38,17 +15,6 @@ http://127.0.0.1:8000/mcp
 
 Подключайте агента к серверу `bhm` через Streamable HTTP. Для проверки сначала
 убедитесь, что `/health/ready` возвращает успешный ответ.
-
-### Лимит и очередь сессий
-
-Транспорт держит до 32 одновременно admitted MCP-сессий. Если лимит занят,
-новые `initialize` ждут в FIFO-очереди и не создают SDK-сессию заранее. После
-`DELETE`, idle expiry или transport loss освобождённый слот получает первый
-ожидающий клиент. Состояние доступно в `/bhm/health` в полях
-`active_count`, `max_sessions`, `queued_count` и `pending_count`.
-
-Очередь ограничивает только MCP transport lifecycle; она не является очередью
-записи памяти и не создаёт записи в BHM сама по себе.
 
 ## Принцип безопасности
 

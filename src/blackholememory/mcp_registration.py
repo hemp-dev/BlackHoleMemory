@@ -147,13 +147,22 @@ def normalize_mcp_url(value: str | None, default: str = DEFAULT_MCP_URL) -> str:
 def _replace_root(value: str, root: Path | None, token: str) -> str:
     if root is None:
         return value
-    root_text = ntpath.normpath(str(root)).replace("/", "\\").rstrip("\\")
-    candidate = value.replace("/", "\\")
-    if candidate.casefold() == root_text.casefold():
+    root_str = str(root)
+    root_posix = os.path.normpath(root_str).replace("\\", "/").rstrip("/")
+    cand_posix = value.replace("\\", "/")
+    if cand_posix.casefold() == root_posix.casefold():
         return token
-    prefix = root_text + "\\"
-    if candidate.casefold().startswith(prefix.casefold()):
-        return token + "/" + candidate[len(prefix) :].replace("\\", "/")
+    prefix_posix = root_posix + "/"
+    if cand_posix.casefold().startswith(prefix_posix.casefold()):
+        return token + "/" + cand_posix[len(prefix_posix) :]
+
+    root_win = ntpath.normpath(root_str).replace("/", "\\").rstrip("\\")
+    cand_win = value.replace("/", "\\")
+    if cand_win.casefold() == root_win.casefold():
+        return token
+    prefix_win = root_win + "\\"
+    if cand_win.casefold().startswith(prefix_win.casefold()):
+        return token + "/" + cand_win[len(prefix_win) :].replace("\\", "/")
     return value
 
 
