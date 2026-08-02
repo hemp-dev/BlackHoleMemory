@@ -15,6 +15,7 @@ a = Analysis(
         ('infra', 'infra'),
         ('config', 'config'),
         ('pyproject.toml', '.'),
+        ('src', 'src'),
     ],
     hiddenimports=[],
     hookspath=[],

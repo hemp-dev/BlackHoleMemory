@@ -269,9 +269,19 @@ def app_dir() -> Path:
 def candidate_roots() -> list[Path]:
     base = app_dir()
     roots = [base]
-    if base.name.lower() in {"scripts", "dist"}:
-        roots.append(base.parent)
-    roots.append(Path.cwd().resolve())
+    bundled = bundled_resource_root()
+    if bundled:
+        roots.append(bundled)
+    curr = base
+    while curr.parent != curr:
+        curr = curr.parent
+        roots.append(curr)
+    cwd = Path.cwd().resolve()
+    roots.append(cwd)
+    curr_cwd = cwd
+    while curr_cwd.parent != curr_cwd:
+        curr_cwd = curr_cwd.parent
+        roots.append(curr_cwd)
     return list(dict.fromkeys(roots))
 
 
@@ -279,9 +289,11 @@ def find_project_root() -> Path:
     for root in candidate_roots():
         if (root / "pyproject.toml").exists() and (root / "src" / "blackholememory").exists():
             return root
-        if (root / "scripts" / "run-service.ps1").exists():
+        if (root / "pyproject.toml").exists():
             return root
-    return app_dir().parent if app_dir().name.lower() in {"scripts", "dist"} else app_dir()
+        if (root / "scripts" / "run-service.ps1").exists() or (root / "scripts" / "run-service.sh").exists():
+            return root
+    return app_dir().parent if app_dir().name.lower() in {"scripts", "dist", "macos", "contents"} else app_dir()
 
 
 def find_resource_root() -> Path:
@@ -937,10 +949,26 @@ class InstallWorker(QThread):
         self.state_root.mkdir(parents=True, exist_ok=True)
         python_path = venv_python(self.state_root)
         host_python = host_python_executable()
+
+        source_target = self.source_root.resolve()
+        if not (source_target / "pyproject.toml").exists():
+            for root in candidate_roots():
+                if (root / "pyproject.toml").exists():
+                    source_target = root
+                    break
+
+        if (source_target / "pyproject.toml").exists():
+            install_cmd = [str(python_path), "-m", "pip", "install", "-e", str(source_target)]
+        elif (source_target / "src" / "blackholememory").exists():
+            install_cmd = [str(python_path), "-m", "pip", "install", str(source_target / "src")]
+        else:
+            self.log_signal.emit(f"[WARN] pyproject.toml not found in {source_target}. Upgrading pip dependencies...")
+            install_cmd = [str(python_path), "-m", "pip", "install", "--upgrade", "pip"]
+
         steps = [
             (5, "Creating virtual environment", [host_python, "-m", "venv", ".venv"]),
             (35, "Upgrading pip", [str(python_path), "-m", "pip", "install", "--upgrade", "pip"]),
-            (65, "Installing BlackHoleMemory", [str(python_path), "-m", "pip", "install", "-e", str(self.source_root.resolve())]),
+            (65, "Installing BlackHoleMemory", install_cmd),
             (90, "Pulling pinned Qdrant image", ["docker", "pull", QDRANT_IMAGE]),
         ]
 
