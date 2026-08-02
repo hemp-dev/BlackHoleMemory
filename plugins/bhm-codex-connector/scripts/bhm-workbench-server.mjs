@@ -172,7 +172,8 @@ function authorizeApiRequest(req, requestPort) {
 
 function runPowerShell(args) {
   return new Promise((resolve) => {
-    const child = spawn("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", ...args], {
+    const psExe = process.platform === "win32" ? "powershell" : "pwsh";
+    const child = spawn(psExe, ["-NoProfile", "-ExecutionPolicy", "Bypass", ...args], {
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
       env: childProcessEnv,

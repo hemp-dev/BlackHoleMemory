@@ -1,5 +1,5 @@
 param(
-    [string]$CodexConfigPath = "C:\Users\xman\.codex\config.toml",
+    [string]$CodexConfigPath = [System.IO.Path]::Combine((if ($env:USERPROFILE) { $env:USERPROFILE } else { $env:HOME }), ".codex", "config.toml"),
     [switch]$AsJson
 )
 

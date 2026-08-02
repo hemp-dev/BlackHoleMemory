@@ -183,10 +183,11 @@ def _qdrant_connection_config() -> dict[str, Any]:
             config["api_key"] = settings.qdrant_api_key
         return config
 
-    if state.backend == "embedded-local":
+    if state.backend in {"embedded-local", "unavailable"}:
         QDRANT_LOCAL_PATH.mkdir(parents=True, exist_ok=True)
         return {"path": str(QDRANT_LOCAL_PATH)}
-    raise StorageNotReady(state.reason)
+    QDRANT_LOCAL_PATH.mkdir(parents=True, exist_ok=True)
+    return {"path": str(QDRANT_LOCAL_PATH)}
 
 
 class BHMGraphManager:

@@ -749,29 +749,21 @@ def _merge_spawned_pids(state: dict[str, Any], *payloads: Any) -> dict[str, Any]
 def _is_pid_running(pid: int) -> bool:
     if pid <= 0:
         return False
-    if platform.system() == "Windows":
-        try:
-            result = subprocess.run(
-                ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired):
-            return False
-        return f'"{pid}"' in result.stdout or f",{pid}," in result.stdout
     try:
-        os.kill(pid, 0)
-        return True
-    except OSError:
-        return False
+        import psutil
+        return psutil.pid_exists(pid)
+    except Exception:
+        try:
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
 
 
 def _grace_wait(seconds: int) -> None:
     delay = max(seconds, 0)
     if delay:
-        asyncio.run(asyncio.sleep(delay))
+        time.sleep(delay)
 
 
 def _terminate_spawned_pid_tree(pid: int, grace_seconds: int = 3) -> dict[str, Any]:
@@ -779,41 +771,39 @@ def _terminate_spawned_pid_tree(pid: int, grace_seconds: int = 3) -> dict[str, A
     if pid <= 0 or pid == os.getpid():
         result["error"] = "invalid_pid"
         return result
-    if platform.system() == "Windows":
-        try:
-            soft = subprocess.run(
-                ["taskkill", "/PID", str(pid), "/T"],
-                capture_output=True,
-                text=True,
-                timeout=max(grace_seconds, 1),
-                check=False,
-            )
-            result["soft_exit_code"] = soft.returncode
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            result["soft_error"] = str(exc)
-        _grace_wait(grace_seconds)
-        if _is_pid_running(pid):
+    try:
+        import psutil
+        parent = psutil.Process(pid)
+        children = parent.children(recursive=True)
+        for child in children:
             try:
-                forced = subprocess.run(
-                    ["taskkill", "/PID", str(pid), "/T", "/F"],
-                    capture_output=True,
-                    text=True,
-                    timeout=max(grace_seconds, 1),
-                    check=False,
-                )
-                result["forced"] = True
-                result["force_exit_code"] = forced.returncode
-            except (OSError, subprocess.TimeoutExpired) as exc:
-                result["force_error"] = str(exc)
-    else:
+                child.terminate()
+            except psutil.NoSuchProcess:
+                pass
         try:
-            os.kill(pid, 15)
-            _grace_wait(grace_seconds)
-            if _is_pid_running(pid):
+            parent.terminate()
+        except psutil.NoSuchProcess:
+            pass
+        _, alive = psutil.wait_procs(children + [parent], timeout=max(grace_seconds, 1))
+        if alive:
+            for p in alive:
+                try:
+                    p.kill()
+                except psutil.NoSuchProcess:
+                    pass
+            result["forced"] = True
+    except Exception as exc:
+        result["error"] = str(exc)
+        if platform.system() == "Windows":
+            try:
+                subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, check=False)
+            except Exception:
+                pass
+        else:
+            try:
                 os.kill(pid, 9)
-                result["forced"] = True
-        except OSError as exc:
-            result["error"] = str(exc)
+            except OSError:
+                pass
     result["terminated"] = not _is_pid_running(pid)
     return result
 

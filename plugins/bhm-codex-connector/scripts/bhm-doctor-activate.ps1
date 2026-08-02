@@ -14,7 +14,8 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 
 $pluginRoot = Split-Path -Parent $PSScriptRoot
 $runtimeConfigPath = Join-Path $pluginRoot "config\runtime-discovery.json"
-$defaultEnvPath = "C:\Users\xman\.bhm\.env"
+$userHome = if ($env:USERPROFILE) { $env:USERPROFILE } else { (Get-Item ~).FullName }
+$defaultEnvPath = Join-Path $userHome ".bhm\.env"
 $apiBase = $null
 $viewerUrl = $null
 $workbenchUrl = [string]$env:BHM_WORKBENCH_URL

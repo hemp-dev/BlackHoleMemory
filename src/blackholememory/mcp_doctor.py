@@ -461,8 +461,10 @@ def _stdio_protocol_probe(config: DoctorConfig) -> tuple[dict[str, Any], dict[st
                 "BHM_MCP_LEASE_VERBOSE": "0",
             }
         )
-        process = subprocess.Popen(
-            [
+        if os.name != "nt":
+            cmd = [sys.executable, "-m", "blackholememory.bhm_mcp"]
+        else:
+            cmd = [
                 "powershell",
                 "-NoProfile",
                 "-ExecutionPolicy",
@@ -472,7 +474,9 @@ def _stdio_protocol_probe(config: DoctorConfig) -> tuple[dict[str, Any], dict[st
                 "-BaseUrl",
                 config.base_url,
                 "-DisableLeaseHeartbeat",
-            ],
+            ]
+        process = subprocess.Popen(
+            cmd,
             cwd=config.repo_root,
             env=environment,
             stdin=subprocess.PIPE,

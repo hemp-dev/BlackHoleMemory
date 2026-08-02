@@ -77,18 +77,71 @@ http://127.0.0.1:8000/mcp
 
 ## Installation
 
-Requirements:
+BlackHoleMemory supports **macOS**, **Linux / Unix**, and **Windows 10/11**.
 
-- macOS (Apple Silicon / Intel), Linux, or Windows 10/11;
-- Python 3.12+;
-- [uv](https://docs.astral.sh/uv/);
-- Docker or Colima with Docker Compose for local Qdrant.
+### Prerequisites
 
-```bash
-git clone https://github.com/Efidripy/BlackHoleMemory.git
-cd BlackHoleMemory
-uv sync
-```
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/) (fast Python package manager)
+- Docker or Colima with Docker Compose (for local Qdrant container)
+
+---
+
+### 🍏 macOS (Apple Silicon / Intel)
+
+1. Install dependencies via Homebrew:
+   ```bash
+   brew install python@3.12 uv docker colima
+   colima start  # If using Colima instead of Docker Desktop
+   ```
+2. Clone repository and install dependencies:
+   ```bash
+   git clone https://github.com/Efidripy/BlackHoleMemory.git
+   cd BlackHoleMemory
+   uv sync
+   ```
+
+---
+
+### 🐧 Linux / Unix (Ubuntu, Debian, Fedora, Arch)
+
+1. Install Python 3.12, Git, and Docker Engine:
+   ```bash
+   # Ubuntu / Debian
+   sudo apt update && sudo apt install -y python3.12 python3.12-venv git docker.io
+   sudo systemctl enable --now docker
+   sudo usermod -aG docker $USER
+   ```
+2. Install `uv`:
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+3. Clone repository and install dependencies:
+   ```bash
+   git clone https://github.com/Efidripy/BlackHoleMemory.git
+   cd BlackHoleMemory
+   uv sync
+   ```
+
+---
+
+### 🪟 Windows 10/11 (PowerShell / WSL2)
+
+1. Install Python 3.12, Docker Desktop (WSL2 backend), and `uv`:
+   ```powershell
+   # Via winget in PowerShell
+   winget install Python.Python.3.12
+   winget install astral-sh.uv
+   winget install Docker.DockerDesktop
+   ```
+2. Clone repository and install dependencies:
+   ```powershell
+   git clone https://github.com/Efidripy/BlackHoleMemory.git
+   cd BlackHoleMemory
+   uv sync
+   ```
+
+---
 
 ## Getting Started
 
@@ -99,6 +152,10 @@ You can use the unified `bhm` CLI or native scripts:
 ```bash
 # Check system health & dependencies
 uv run bhm doctor
+
+# Inspect & compare context profiles
+uv run bhm profile status
+uv run bhm profile compare
 
 # Start local Qdrant container
 uv run bhm qdrant start

@@ -4822,7 +4822,20 @@ def _spawn_detached_restart_launcher() -> int:
     log_dir.mkdir(parents=True, exist_ok=True)
 
     if os.name != "nt":
-        raise HTTPException(status_code=501, detail="detached restart is implemented for Windows runtime only")
+        start_sh = settings.repo_root / "scripts" / "start-bhm-authoritative.sh"
+        cmd = [str(start_sh)] if start_sh.exists() else [sys.executable, "-m", "blackholememory.cli", "start"]
+        with open(stdout_log, "a", encoding="utf-8") as out, open(stderr_log, "a", encoding="utf-8") as err:
+            process = subprocess.Popen(
+                cmd,
+                cwd=str(settings.repo_root),
+                stdin=subprocess.DEVNULL,
+                stdout=out,
+                stderr=err,
+                start_new_session=True,
+                close_fds=True,
+            )
+        launcher_log.write_text(f"posix_launcher_start pid={process.pid}\n", encoding="utf-8")
+        return int(process.pid or 0)
 
     script = f"""
 $ErrorActionPreference = "Stop"

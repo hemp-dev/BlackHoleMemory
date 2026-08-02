@@ -82,18 +82,71 @@ http://127.0.0.1:8000/mcp
 
 ## Установка
 
-Требования:
+BlackHoleMemory поддерживает **macOS**, **Linux / Unix** и **Windows 10/11**.
 
-- macOS (Apple Silicon / Intel), Linux или Windows 10/11;
-- Python 3.12+;
-- [uv](https://docs.astral.sh/uv/);
-- Docker или Colima с Docker Compose для локального Qdrant.
+### Системные требования
 
-```bash
-git clone https://github.com/Efidripy/BlackHoleMemory.git
-cd BlackHoleMemory
-uv sync
-```
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/) (быстрый менеджер пакетов Python)
+- Docker или Colima с Docker Compose (для локального контейнера Qdrant)
+
+---
+
+### 🍏 macOS (Apple Silicon / Intel)
+
+1. Установите зависимости (через Homebrew):
+   ```bash
+   brew install python@3.12 uv docker colima
+   colima start  # При использовании Colima вместо Docker Desktop
+   ```
+2. Клонируйте репозиторий и установите проект:
+   ```bash
+   git clone https://github.com/Efidripy/BlackHoleMemory.git
+   cd BlackHoleMemory
+   uv sync
+   ```
+
+---
+
+### 🐧 Linux / Unix (Ubuntu, Debian, Fedora, Arch)
+
+1. Установите Python 3.12, Git и Docker Engine:
+   ```bash
+   # Ubuntu / Debian
+   sudo apt update && sudo apt install -y python3.12 python3.12-venv git docker.io
+   sudo systemctl enable --now docker
+   sudo usermod -aG docker $USER
+   ```
+2. Установите `uv`:
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+3. Клонируйте репозиторий и установите проект:
+   ```bash
+   git clone https://github.com/Efidripy/BlackHoleMemory.git
+   cd BlackHoleMemory
+   uv sync
+   ```
+
+---
+
+### 🪟 Windows 10/11 (PowerShell / WSL2)
+
+1. Установите Python 3.12, Docker Desktop (с WSL2 backend) и `uv`:
+   ```powershell
+   # Через winget в PowerShell
+   winget install Python.Python.3.12
+   winget install astral-sh.uv
+   winget install Docker.DockerDesktop
+   ```
+2. Клонируйте репозиторий и установите проект:
+   ```powershell
+   git clone https://github.com/Efidripy/BlackHoleMemory.git
+   cd BlackHoleMemory
+   uv sync
+   ```
+
+---
 
 ## Запуск
 
@@ -104,6 +157,10 @@ uv sync
 ```bash
 # Проверка здоровья системы и зависимостей
 uv run bhm doctor
+
+# Просмотр и сравнение контекстных профилей
+uv run bhm profile status
+uv run bhm profile compare
 
 # Запуск локального контейнера Qdrant
 uv run bhm qdrant start

@@ -27,8 +27,9 @@ a = Analysis(
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 icon_path = os.path.join('assets', 'bhm-control-panel.ico')
-if sys.platform == 'darwin' and os.path.exists(os.path.join('assets', 'bhm-control-panel.icns')):
-    icon_path = os.path.join('assets', 'bhm-control-panel.icns')
+if sys.platform == 'darwin':
+    icns_candidate = os.path.join('assets', 'bhm-control-panel.icns')
+    icon_path = icns_candidate if os.path.exists(icns_candidate) else None
 
 exe = EXE(
     pyz,
@@ -49,7 +50,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=[icon_path],
+    icon=[icon_path] if icon_path else None,
 )
 
 if sys.platform == 'darwin':

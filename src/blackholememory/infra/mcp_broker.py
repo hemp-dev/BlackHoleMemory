@@ -92,7 +92,10 @@ class McpIpcBroker:
     ) -> None:
         self.pipe_name = pipe_name
         self.pipe_path = rf"\\.\pipe\{pipe_name}"
-        self.unix_socket_path = unix_socket_path or os.path.join(tempfile.gettempdir(), f"{pipe_name}.sock")
+        default_sock = os.path.join(tempfile.gettempdir(), f"{pipe_name}.sock")
+        if len(default_sock) > 90 and os.name != "nt" and os.path.exists("/tmp"):
+            default_sock = f"/tmp/{pipe_name}.sock"
+        self.unix_socket_path = unix_socket_path or default_sock
         self.max_clients = max(max_clients, 1)
         self.read_buffer_size = max(read_buffer_size, 4096)
         self.max_frame_bytes = max(max_frame_bytes, 4096)

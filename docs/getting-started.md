@@ -13,15 +13,57 @@
 
 ---
 
-## 2. Установка
+## 2. Установка по операционным системам
 
-Клонируйте репозиторий и установите зависимости:
+### 🍏 macOS (Apple Silicon / Intel)
 
-```bash
-git clone https://github.com/Efidripy/BlackHoleMemory.git
-cd BlackHoleMemory
-uv sync
-```
+1. Установите необходимые утилиты через Homebrew:
+   ```bash
+   brew install python@3.12 uv docker colima
+   colima start  # Если используется Colima вместо Docker Desktop
+   ```
+2. Клонируйте репозиторий и установите зависимости:
+   ```bash
+   git clone https://github.com/Efidripy/BlackHoleMemory.git
+   cd BlackHoleMemory
+   uv sync
+   ```
+
+### 🐧 Linux / Unix (Ubuntu, Debian, Fedora, Arch)
+
+1. Установите Python 3.12, Git и Docker Engine:
+   ```bash
+   # Ubuntu / Debian
+   sudo apt update && sudo apt install -y python3.12 python3.12-venv git docker.io
+   sudo systemctl enable --now docker
+   sudo usermod -aG docker $USER
+   ```
+2. Установите менеджер пакетов `uv`:
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+3. Клонируйте репозиторий и выполните сборку виртуального окружения:
+   ```bash
+   git clone https://github.com/Efidripy/BlackHoleMemory.git
+   cd BlackHoleMemory
+   uv sync
+   ```
+
+### 🪟 Windows 10/11 (PowerShell / WSL2)
+
+1. Установите Python 3.12, Docker Desktop (с поддержкой WSL2) и `uv`:
+   ```powershell
+   # В консоли PowerShell (winget)
+   winget install Python.Python.3.12
+   winget install astral-sh.uv
+   winget install Docker.DockerDesktop
+   ```
+2. Клонируйте репозиторий и установите проект:
+   ```powershell
+   git clone https://github.com/Efidripy/BlackHoleMemory.git
+   cd BlackHoleMemory
+   uv sync
+   ```
 
 ---
 

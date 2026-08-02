@@ -1,5 +1,5 @@
 param(
-    [string]$ConfigPath = "C:\Users\xman\.codex\config.toml",
+    [string]$ConfigPath = [System.IO.Path]::Combine((if ($env:USERPROFILE) { $env:USERPROFILE } else { $env:HOME }), ".codex", "config.toml"),
     [string]$MarketplaceName = "bhm-marketplace",
     [string]$MarketplaceRoot = ""
 )

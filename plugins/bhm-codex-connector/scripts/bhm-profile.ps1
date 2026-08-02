@@ -1,7 +1,7 @@
 param(
     [ValidateSet("status", "low-context", "standard", "deep", "compare")]
     [string]$Action = "status",
-    [string]$EnvPath = "C:\Users\xman\.bhm\.env",
+    [string]$EnvPath = [System.IO.Path]::Combine((if ($env:USERPROFILE) { $env:USERPROFILE } else { $env:HOME }), ".bhm", ".env"),
     [switch]$RestartWorker,
     [switch]$AsJson
 )

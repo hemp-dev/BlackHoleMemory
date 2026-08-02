@@ -829,7 +829,7 @@ def _read_candidate(root: Path, candidate: RepositoryCandidate) -> tuple[dict[st
     return (
         {
             "path": candidate.path,
-            "content_sha256": _sha256_bytes(payload),
+            "content_sha256": _sha256_bytes(payload.replace(b"\r\n", b"\n")),
             "size_bytes": len(payload),
             "line_count": content.count("\n") + (1 if content and not content.endswith("\n") else 0),
             "mtime_ns": candidate.mtime_ns,

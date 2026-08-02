@@ -36,6 +36,11 @@ jobs:
       - name: Run Doctor Health Check
         run: uv run bhm doctor
 
+      - name: Run Profile Check
+        run: |
+          uv run bhm profile status
+          uv run bhm profile compare
+
       - name: Run Unit Tests
         run: uv run pytest tests/unit
 

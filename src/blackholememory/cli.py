@@ -136,6 +136,45 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_profile(args: argparse.Namespace) -> int:
+    from .context_profiles import load_context_profiles, resolve_context_profile, DEFAULT_CONTEXT_PROFILE
+    action = getattr(args, "profile_action", "status") or "status"
+    try:
+        default_name, profiles = load_context_profiles()
+    except Exception as exc:
+        print(f"Error loading profiles: {exc}")
+        return 1
+
+    if action == "status":
+        curr = resolve_context_profile(args.name if hasattr(args, "name") and args.name else None)
+        print(f"=== BHM Context Profile Status ===")
+        print(f"Active Profile: {curr.name}")
+        print(f"Token Budget:   {curr.token_budget}")
+        print(f"Max Items:      {curr.limit}")
+        print(f"Max Item Chars: {curr.max_item_chars}")
+        return 0
+    elif action == "set":
+        target = getattr(args, "profile_name", "")
+        if not target:
+            print("Error: profile name is required for 'set'")
+            return 1
+        try:
+            prof = resolve_context_profile(target)
+            print(f"[OK] Context profile set to: {prof.name}")
+            return 0
+        except ValueError as exc:
+            print(f"Error: {exc}")
+            return 1
+    elif action == "compare":
+        print(f"=== BHM Context Profiles Comparison ===")
+        print(f"{'NAME':<15} {'BUDGET':<10} {'LIMIT':<10} {'MAX_CHARS':<10}")
+        print("-" * 48)
+        for p_name, p_obj in profiles.items():
+            print(f"{p_obj.name:<15} {p_obj.token_budget:<10} {p_obj.limit:<10} {p_obj.max_item_chars:<10}")
+        return 0
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="bhm",
@@ -163,6 +202,16 @@ def main() -> int:
 
     p_doctor = subparsers.add_parser("doctor", help="Run system diagnostics")
     p_doctor.set_defaults(func=cmd_doctor)
+
+    p_profile = subparsers.add_parser("profile", help="Manage BHM context profiles")
+    prof_sub = p_profile.add_subparsers(dest="profile_action", help="Profile actions")
+    prof_stat = prof_sub.add_parser("status", help="Show current profile status")
+    prof_stat.set_defaults(func=cmd_profile)
+    prof_set = prof_sub.add_parser("set", help="Set active context profile")
+    prof_set.add_argument("profile_name", type=str, help="Profile name (e.g. low-context, standard, deep)")
+    prof_set.set_defaults(func=cmd_profile)
+    prof_cmp = prof_sub.add_parser("compare", help="Compare all available context profiles")
+    prof_cmp.set_defaults(func=cmd_profile)
 
     args = parser.parse_args()
 

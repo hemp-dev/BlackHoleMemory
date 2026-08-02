@@ -49,6 +49,19 @@ uv run bhm status
 uv run bhm qdrant start
 ```
 
+#### `bhm profile`
+Управление профилями контекста BHM (`status`, `set`, `compare`):
+```bash
+# Просмотр текущего активного профиля контекста
+uv run bhm profile status
+
+# Установка активного профиля (например: low-context, standard, deep)
+uv run bhm profile set low-context
+
+# Сравнение всех доступных профилей контекста
+uv run bhm profile compare
+```
+
 ---
 
 ## 2. Нативные скрипты автоматизации (`scripts/`)
